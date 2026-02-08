@@ -649,8 +649,10 @@ const handler = createMcpHandler(
     );
   },
   {
-    name: 'Upscaled Google Workspace MCP',
-    version: '1.0.0',
+    serverInfo: {
+      name: 'Upscaled Google Workspace MCP',
+      version: '1.0.0',
+    },
   },
   {
     basePath: '/api',
