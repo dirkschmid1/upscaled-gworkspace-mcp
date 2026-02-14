@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { verifyCode } from "../authorize/route";
+import { verifyCode } from "@/lib/oauth-codes";
 import { createSignedToken } from "@/lib/auth";
 
 export async function POST(req: NextRequest) {
