@@ -181,7 +181,7 @@ export async function formsGetResponses(
       lastSubmittedTime: r.lastSubmittedTime,
       answers: r.answers
         ? Object.entries(r.answers).reduce((acc, [qId, answer]) => {
-            acc[qId] = answer.textAnswers?.answers?.map((a) => a.value) || [];
+            acc[qId] = (answer.textAnswers?.answers?.map((a) => a.value).filter((v): v is string => !!v)) || [];
             return acc;
           }, {} as Record<string, string[]>)
         : {},
