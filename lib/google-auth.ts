@@ -5,6 +5,9 @@ const SCOPES = [
   'https://mail.google.com/',
   'https://www.googleapis.com/auth/calendar',
   'https://www.googleapis.com/auth/drive',
+  'https://www.googleapis.com/auth/spreadsheets',
+  'https://www.googleapis.com/auth/forms.body',
+  'https://www.googleapis.com/auth/forms.responses.readonly',
   'https://www.googleapis.com/auth/userinfo.email',
   'openid',
 ];

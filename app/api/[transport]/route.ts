@@ -28,6 +28,18 @@ import {
   driveCreateFolder,
   driveMoveFile,
 } from '@/lib/drive-tools';
+import {
+  sheetsCreate,
+  sheetsGet,
+  sheetsUpdate,
+  sheetsAppend,
+  sheetsClear,
+} from '@/lib/sheets-tools';
+import {
+  formsCreate,
+  formsGet,
+  formsGetResponses,
+} from '@/lib/forms-tools';
 
 const handler = createMcpHandler(
   (server) => {
@@ -647,11 +659,234 @@ const handler = createMcpHandler(
         };
       }
     );
+    // =====================
+    // SHEETS TOOLS
+    // =====================
+
+    server.registerTool(
+      'sheets_create',
+      {
+        title: 'Google Sheets – Create Spreadsheet',
+        description:
+          'Create a new Google Spreadsheet. Optionally specify sheet tab names and a target folder.',
+        inputSchema: {
+          userEmail: z.string().email(),
+          title: z.string().describe('Spreadsheet title'),
+          sheetNames: z
+            .array(z.string())
+            .optional()
+            .describe('Names for the sheet tabs (default: "Sheet1")'),
+          folderId: z
+            .string()
+            .optional()
+            .describe('Parent folder ID (optional)'),
+        },
+      },
+      async ({ userEmail, title, sheetNames, folderId }) => {
+        const result = await sheetsCreate(userEmail, title, sheetNames, folderId);
+        return {
+          content: [
+            { type: 'text' as const, text: JSON.stringify(result, null, 2) },
+          ],
+        };
+      }
+    );
+
+    server.registerTool(
+      'sheets_get',
+      {
+        title: 'Google Sheets – Get Data',
+        description:
+          'Get spreadsheet metadata or read cell values. Specify range like "Sheet1!A1:D10" to read data, or omit range to get sheet metadata.',
+        inputSchema: {
+          userEmail: z.string().email(),
+          spreadsheetId: z.string().describe('Spreadsheet ID'),
+          range: z
+            .string()
+            .optional()
+            .describe('Cell range, e.g. "Sheet1!A1:D10". Omit for metadata only.'),
+        },
+      },
+      async ({ userEmail, spreadsheetId, range }) => {
+        const result = await sheetsGet(userEmail, spreadsheetId, range);
+        return {
+          content: [
+            { type: 'text' as const, text: JSON.stringify(result, null, 2) },
+          ],
+        };
+      }
+    );
+
+    server.registerTool(
+      'sheets_update',
+      {
+        title: 'Google Sheets – Update Cells',
+        description:
+          'Write values to a specific range. Overwrites existing data.',
+        inputSchema: {
+          userEmail: z.string().email(),
+          spreadsheetId: z.string().describe('Spreadsheet ID'),
+          range: z.string().describe('Target range, e.g. "Sheet1!A1:C3"'),
+          values: z
+            .array(z.array(z.string()))
+            .describe('2D array of cell values, e.g. [["Name","Age"],["Dirk","35"]]'),
+        },
+      },
+      async ({ userEmail, spreadsheetId, range, values }) => {
+        const result = await sheetsUpdate(userEmail, spreadsheetId, range, values);
+        return {
+          content: [
+            { type: 'text' as const, text: JSON.stringify(result, null, 2) },
+          ],
+        };
+      }
+    );
+
+    server.registerTool(
+      'sheets_append',
+      {
+        title: 'Google Sheets – Append Rows',
+        description:
+          'Append rows to the end of existing data in a sheet. Perfect for adding new entries.',
+        inputSchema: {
+          userEmail: z.string().email(),
+          spreadsheetId: z.string().describe('Spreadsheet ID'),
+          range: z.string().describe('Target sheet, e.g. "Sheet1!A:D"'),
+          values: z
+            .array(z.array(z.string()))
+            .describe('Rows to append, e.g. [["New","Row","Data"]]'),
+        },
+      },
+      async ({ userEmail, spreadsheetId, range, values }) => {
+        const result = await sheetsAppend(userEmail, spreadsheetId, range, values);
+        return {
+          content: [
+            { type: 'text' as const, text: JSON.stringify(result, null, 2) },
+          ],
+        };
+      }
+    );
+
+    server.registerTool(
+      'sheets_clear',
+      {
+        title: 'Google Sheets – Clear Range',
+        description: 'Clear all values in a specified range.',
+        inputSchema: {
+          userEmail: z.string().email(),
+          spreadsheetId: z.string().describe('Spreadsheet ID'),
+          range: z.string().describe('Range to clear, e.g. "Sheet1!A1:Z100"'),
+        },
+      },
+      async ({ userEmail, spreadsheetId, range }) => {
+        const result = await sheetsClear(userEmail, spreadsheetId, range);
+        return {
+          content: [
+            { type: 'text' as const, text: JSON.stringify(result, null, 2) },
+          ],
+        };
+      }
+    );
+
+    // =====================
+    // FORMS TOOLS
+    // =====================
+
+    server.registerTool(
+      'forms_create',
+      {
+        title: 'Google Forms – Create Form',
+        description:
+          'Create a new Google Form with questions. Supported question types: SHORT_TEXT, LONG_TEXT, MULTIPLE_CHOICE, CHECKBOX, DROPDOWN, SCALE, DATE, TIME.',
+        inputSchema: {
+          userEmail: z.string().email(),
+          title: z.string().describe('Form title'),
+          description: z.string().optional().describe('Form description'),
+          questions: z
+            .array(
+              z.object({
+                title: z.string().describe('Question text'),
+                type: z
+                  .enum([
+                    'SHORT_TEXT', 'LONG_TEXT', 'MULTIPLE_CHOICE',
+                    'CHECKBOX', 'DROPDOWN', 'SCALE', 'DATE', 'TIME',
+                  ])
+                  .describe('Question type'),
+                required: z.boolean().optional().describe('Is answer required?'),
+                options: z
+                  .array(z.string())
+                  .optional()
+                  .describe('Options for MULTIPLE_CHOICE, CHECKBOX, DROPDOWN'),
+                scaleMin: z.number().optional(),
+                scaleMax: z.number().optional(),
+                scaleLowLabel: z.string().optional(),
+                scaleHighLabel: z.string().optional(),
+              })
+            )
+            .optional()
+            .describe('List of questions'),
+          folderId: z
+            .string()
+            .optional()
+            .describe('Parent folder ID (optional)'),
+        },
+      },
+      async ({ userEmail, title, description, questions, folderId }) => {
+        const result = await formsCreate(
+          userEmail, title, description, questions, folderId
+        );
+        return {
+          content: [
+            { type: 'text' as const, text: JSON.stringify(result, null, 2) },
+          ],
+        };
+      }
+    );
+
+    server.registerTool(
+      'forms_get',
+      {
+        title: 'Google Forms – Get Form',
+        description: 'Get form metadata and questions by form ID.',
+        inputSchema: {
+          userEmail: z.string().email(),
+          formId: z.string().describe('Google Form ID'),
+        },
+      },
+      async ({ userEmail, formId }) => {
+        const result = await formsGet(userEmail, formId);
+        return {
+          content: [
+            { type: 'text' as const, text: JSON.stringify(result, null, 2) },
+          ],
+        };
+      }
+    );
+
+    server.registerTool(
+      'forms_get_responses',
+      {
+        title: 'Google Forms – Get Responses',
+        description: 'Get all responses/submissions for a form.',
+        inputSchema: {
+          userEmail: z.string().email(),
+          formId: z.string().describe('Google Form ID'),
+        },
+      },
+      async ({ userEmail, formId }) => {
+        const result = await formsGetResponses(userEmail, formId);
+        return {
+          content: [
+            { type: 'text' as const, text: JSON.stringify(result, null, 2) },
+          ],
+        };
+      }
+    );
   },
   {
     serverInfo: {
       name: 'Upscaled Google Workspace MCP',
-      version: '1.0.0',
+      version: '2.0.0',
     },
   },
   {
